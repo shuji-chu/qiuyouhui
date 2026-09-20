@@ -2,33 +2,72 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { groupLeagues } from '@/config/leagues';
+import { CHANNELS } from '@/config/channels';
 import { useUser } from '@/hooks/useUser';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { LivePreview } from '@/components/match/LivePreview';
+import { StreamCard } from '@/components/match/StreamCard';
+
+const TABS = [
+  { key: 'all', label: '全部' },
+  { key: 'live', label: '正在直播' },
+  { key: 'football', label: '足球' },
+  { key: 'basketball', label: '篮球' },
+  { key: 'replay', label: '回放' },
+];
 
 export default function HomePage() {
   const { user, loading, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const leagueGroups = groupLeagues();
+  const [tab, setTab] = useState('all');
+
+  const filtered = CHANNELS.filter((c) => {
+    if (tab === 'all') return true;
+    if (tab === 'live') return c.status === 'live';
+    if (tab === 'replay') return c.status === 'replay';
+    return c.category === tab;
+  });
 
   return (
     <main className="min-h-screen pb-20">
       {/* 顶部栏 */}
       <header className="sticky top-0 z-30 glass border-b border-white/40">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <img src="/logo.png" alt="球友会" className="w-8 h-8 rounded-full" />
-            <span className="text-base font-semibold text-slate-800">球友会</span>
+            <span className="text-base font-semibold text-slate-800 hidden sm:block">
+              球友会
+            </span>
           </div>
 
-          {loading ? (
-            <div className="w-16 h-7 rounded-full bg-slate-200/60 animate-pulse" />
-          ) : user ? (
+          {/* 搜索框 */}
+          <div className="flex-1 max-w-md">
             <div className="relative">
+              <input
+                type="text"
+                placeholder="搜索比赛、球队、主播"
+                className="w-full h-9 bg-white/80 border border-slate-200 rounded-full pl-9 pr-4 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-emerald-400 transition"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="M20 20l-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
+
+          {/* 用户 */}
+          {loading ? (
+            <div className="w-16 h-7 rounded-full bg-slate-200/60 animate-pulse shrink-0" />
+          ) : user ? (
+            <div className="relative shrink-0">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-white/60 transition"
+                className="flex items-center gap-1.5 px-1.5 py-1 rounded-full hover:bg-white/60 transition"
               >
                 {user.photoUrl ? (
                   <img src={user.photoUrl} alt="" className="w-7 h-7 rounded-full" />
@@ -37,17 +76,11 @@ export default function HomePage() {
                     {(user.displayName || user.email || '?')[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm max-w-[100px] truncate text-slate-700">
-                  {user.displayName || user.email || '未绑定邮箱'}
-                </span>
               </button>
 
               {menuOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setMenuOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                   <div className="absolute right-0 top-full mt-2 z-20 w-40 rounded-xl bg-white border border-slate-200 overflow-hidden shadow-lg">
                     <Link
                       href="/profile"
@@ -72,82 +105,46 @@ export default function HomePage() {
           ) : (
             <Link
               href="/login"
-              className="text-sm px-4 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm"
+              className="text-sm px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm shrink-0"
             >
               登录
             </Link>
           )}
         </div>
+
+        {/* 分类 Tabs */}
+        <div className="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto pb-2 -mt-1 scrollbar-hide">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                tab === t.key
+                  ? 'bg-emerald-500 text-white'
+                  : 'text-slate-600 hover:bg-white/60'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-5">
-        {/* 正在直播 */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-700 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              正在直播
-            </h2>
-            <Link
-              href="/live"
-              className="text-xs text-slate-400 hover:text-slate-700 transition"
-            >
-              全部 ›
-            </Link>
+      {/* 卡片网格 */}
+      <div className="max-w-5xl mx-auto px-4 py-4">
+        {filtered.length === 0 ? (
+          <div className="py-20 text-center text-sm text-slate-400">
+            暂无内容
           </div>
-
-          <LivePreview
-            roomId="streamkey"
-            title="英超 · 利物浦 vs 曼城"
-            viewers={1243}
-          />
-        </section>
-
-        {/* 联赛分类 */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-700">联赛分类</h2>
-          </div>
-
-          <div className="space-y-4">
-            {leagueGroups.map(({ group, items }) => (
-              <div key={group}>
-                <div className="text-xs text-slate-400 mb-2">{group}</div>
-                <div className="flex flex-wrap gap-2">
-                  {items.map((l) => (
-                    <Link
-                      key={l.slug}
-                      href={`/category/${l.slug}`}
-                      className="px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-sm transition text-sm text-slate-700"
-                    >
-                      <span className="mr-1">{l.icon}</span>
-                      {l.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-5">
+            {filtered.map((ch) => (
+              <StreamCard key={ch.id} ch={ch} />
             ))}
           </div>
-        </section>
-
-        {/* 今日比赛 */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-slate-700">今日比赛</h2>
-            <span className="text-xs text-slate-400">北京时间</span>
-          </div>
-
-          <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center shadow-sm">
-            <div className="text-3xl mb-3">⚽</div>
-            <div className="text-sm text-slate-500">暂无比赛数据</div>
-            <div className="text-xs text-slate-400 mt-2">
-              接入赛事数据后，这里会显示今日赛程
-            </div>
-          </div>
-        </section>
+        )}
       </div>
 
-      {/* 底部导航 */}
       <BottomNav />
     </main>
   );
