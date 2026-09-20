@@ -126,54 +126,65 @@ export default function HomePage() {
 
 function MatchCard({ ch }: { ch: (typeof MOCK_CHANNELS)[0] }) {
   const isLive = ch.status === 'live';
-  const isReplay = ch.status === 'replay';
 
   return (
     <Link
       href={`/live/${ch.id}`}
-      className="block bg-white rounded-xl border border-slate-100 active:bg-slate-50 transition"
+      className="block bg-white rounded-xl border border-slate-100 overflow-hidden active:bg-slate-50 transition"
     >
-      <div className="flex items-center justify-between px-4 pt-3">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm">{ch.leagueIcon}</span>
-          <span className="text-[11px] text-slate-500 truncate">{ch.league}</span>
+      {/* 顶部彩条 */}
+      <div
+        className={`h-1 ${
+          isLive
+            ? 'bg-gradient-to-r from-red-500 to-rose-400'
+            : 'bg-gradient-to-r from-emerald-500 to-teal-400'
+        }`}
+      />
+
+      <div className="p-4">
+        {/* 头部 */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base">{ch.leagueIcon}</span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              {ch.league}
+            </span>
+          </div>
+          {isLive ? (
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              LIVE {ch.minute}'
+            </span>
+          ) : (
+            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              即将开始
+            </span>
+          )}
         </div>
-        {isLive ? (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            LIVE {ch.minute != null && `${ch.minute}'`}
-          </span>
-        ) : isReplay ? (
-          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-            回放
-          </span>
-        ) : (
-          <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-            即将
-          </span>
-        )}
+
+        {/* 对阵 + 比分 */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[15px] text-slate-800 font-medium">
+              {ch.home}
+            </span>
+            <span className="text-[20px] font-bold text-slate-900 tabular-nums leading-none">
+              {ch.homeScore ?? '-'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[15px] text-slate-800 font-medium">
+              {ch.away}
+            </span>
+            <span className="text-[20px] font-bold text-slate-900 tabular-nums leading-none">
+              {ch.awayScore ?? '-'}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="px-4 py-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[15px] text-slate-800 font-medium truncate">
-            {ch.home}
-          </span>
-          <span className="text-[18px] font-bold text-slate-900 tabular-nums">
-            {ch.homeScore ?? '-'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[15px] text-slate-800 font-medium truncate">
-            {ch.away}
-          </span>
-          <span className="text-[18px] font-bold text-slate-900 tabular-nums">
-            {ch.awayScore ?? '-'}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-50">
+      {/* 底部 */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-50 bg-slate-50/50">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
             <path
@@ -182,10 +193,10 @@ function MatchCard({ ch }: { ch: (typeof MOCK_CHANNELS)[0] }) {
             />
             <circle cx="12" cy="12" r="2.5" fill="currentColor" />
           </svg>
-          {formatViewers(ch.viewers)} 人观看
+          {ch.viewers} 人观看
         </div>
         <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5">
-          {isLive ? '进入直播间' : '查看详情'}
+          进入直播间
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
             <path
               d="M9 6l6 6-6 6"
@@ -226,10 +237,4 @@ function ReplaySection() {
       ))}
     </div>
   );
-}
-
-function formatViewers(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
 }
