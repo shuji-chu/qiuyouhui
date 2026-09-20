@@ -1,32 +1,39 @@
-name: Update Live Streams
+name: Update Football Streams
 
 on:
   schedule:
-    # 每天 UTC 2:00 (北京时间 10:00) 运行
+    # 每天 UTC 2:00 (北京时间 10:00) 自动运行
     - cron: '0 2 * * *'
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch: # 允许你手动触发测试
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run update script
-        run: node scripts/update-channels.js
-        
+        run: node scripts/update-streams.js
+
       - name: Commit and push changes
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add src/config/channels.ts
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: auto-update channels [skip ci]"
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/mock.ts
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: auto-update football streams [skip ci]"
+            git push
+          fi
