@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { createSession } from '@/lib/session';
 
 const schema = z.object({
   email: z.string().email('邮箱格式不正确'),
@@ -44,8 +45,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const displayName =
-      user.displayName || email.split('@')[0];
+    const displayName = user.displayName || email.split('@')[0];
 
     await prisma.user.update({
       where: { id: user.id },
@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
         verifyCodeExpiry: null,
         displayName,
       },
+    });
+
+    // ⭐ 关键：种下会话 cookie
+    await createSession({
+      userId: user.id,
+      email: user.email ?? undefined,
+      displayName,
     });
 
     return NextResponse.json({
