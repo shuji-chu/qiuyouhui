@@ -10,7 +10,6 @@ datasource db {
 model User {
   id            String   @id @default(cuid())
   email         String?  @unique
-  emailVerified DateTime?
   passwordHash  String?
 
   safewId       String?  @unique
@@ -19,24 +18,85 @@ model User {
   telegramId       String? @unique
   telegramUsername String?
 
-  firstName     String?
-  lastName      String?
   photoUrl      String?
-
   displayName   String?
   role          String   @default("USER")
+  points        Int      @default(0)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  favorites     Favorite[]
+  predictions   Prediction[]
+  messages      ChatMessage[]
 
   @@index([email])
 }
 
-model EmailVerification {
+// 直播/回放频道
+model Channel {
+  id          String   @id @default(cuid())
+  name        String
+  league      String
+  leagueIcon  String   @default("⚽")
+  home        String?
+  away        String?
+  homeScore   Int?
+  awayScore   Int?
+  minute      Int?
+  status      String   @default("live") // live | replay | upcoming
+  coverUrl    String?
+  streamUrl   String?
+  viewers     Int      @default(0)
+  startAt     DateTime?
+  duration    Int?
+  createdAt   DateTime @default(now())
+
+  favorites   Favorite[]
+
+  @@index([status])
+  @@index([league])
+}
+
+// 收藏
+model Favorite {
   id        String   @id @default(cuid())
-  email     String
-  code      String
-  expires   DateTime
+  userId    String
+  channelId String
   createdAt DateTime @default(now())
 
-  @@index([email])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@index([userId])
+}
+
+// 竞猜（虚拟积分）
+model Prediction {
+  id         String   @id @default(cuid())
+  userId     String
+  channelId  String
+  pick       String   // home | draw | away
+  points     Int      @default(10)
+  isCorrect  Boolean?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@index([userId])
+}
+
+// 直播间聊天
+model ChatMessage {
+  id         String   @id @default(cuid())
+  userId     String
+  channelId  String
+  content    String
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
 }
