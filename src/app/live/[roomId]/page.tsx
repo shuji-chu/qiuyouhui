@@ -2,6 +2,7 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { ChatBox } from '@/components/chat/ChatBox';
 
 interface Channel {
   id: string;
@@ -31,8 +32,8 @@ export default function LivePage({
   const [channel, setChannel] = useState<Channel | null>(null);
   const [playStatus, setPlayStatus] = useState<PlayStatus>('loading');
   const [notFound, setNotFound] = useState(false);
+  const [showChat, setShowChat] = useState(true);
 
-  // 拉频道信息
   useEffect(() => {
     fetch(`/api/channels/${roomId}`)
       .then((r) => r.json())
@@ -59,7 +60,6 @@ export default function LivePage({
     (async () => {
       setPlayStatus('loading');
 
-      // Safari 原生支持 HLS
       if (v.canPlayType('application/vnd.apple.mpegurl')) {
         v.src = channel.streamUrl!;
         v.addEventListener('playing', () => {
@@ -72,7 +72,6 @@ export default function LivePage({
         return;
       }
 
-      // 其他浏览器用 hls.js
       try {
         const mod = await import('hls.js');
         const Hls = (mod as any).default || mod;
@@ -104,7 +103,9 @@ export default function LivePage({
 
     return () => {
       cancelled = true;
-      try { hls?.destroy(); } catch {}
+      try {
+        hls?.destroy();
+      } catch {}
     };
   }, [channel?.streamUrl]);
 
@@ -139,8 +140,10 @@ export default function LivePage({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M15 18l-6-6 6-6"
-                stroke="currentColor" strokeWidth="2.5"
-                strokeLinecap="round" strokeLinejoin="round"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
             返回
@@ -200,7 +203,6 @@ export default function LivePage({
             </div>
           )}
 
-          {/* 全屏按钮 */}
           <button
             onClick={toggleFullscreen}
             className="absolute bottom-16 right-3 px-3 py-1.5 bg-black/60 backdrop-blur text-white text-xs rounded hover:bg-black/80"
@@ -247,12 +249,23 @@ export default function LivePage({
           </div>
         )}
 
-        {/* 聊天区 */}
-        <div className="px-4 py-4">
-          <div className="rounded-xl bg-slate-800/50 border border-slate-700 p-6 text-center text-xs text-slate-500">
-            登录后即可参与聊天
-          </div>
+        {/* 聊天开关 */}
+        <div className="border-b border-slate-800">
+          <button
+            onClick={() => setShowChat((v) => !v)}
+            className="w-full px-4 py-3 flex items-center justify-between text-sm text-slate-400 hover:bg-slate-800/50 transition"
+          >
+            <span>💬 聊天室</span>
+            <span className="text-xs">{showChat ? '收起' : '展开'}</span>
+          </button>
         </div>
+
+        {/* 聊天 */}
+        {showChat && channel && (
+          <div className="h-[420px]">
+            <ChatBox channelId={channel.id} />
+          </div>
+        )}
 
         <div className="h-12" />
       </div>
