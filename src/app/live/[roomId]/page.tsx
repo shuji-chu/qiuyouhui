@@ -2,22 +2,7 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChatBox } from '@/components/chat/ChatBox';
-
-interface Channel {
-  id: string;
-  name: string;
-  league: string;
-  leagueIcon: string;
-  home: string | null;
-  away: string | null;
-  homeScore: number | null;
-  awayScore: number | null;
-  minute: number | null;
-  status: string;
-  streamUrl: string | null;
-  viewers: number;
-}
+import { getMockChannel } from '@/data/mock';
 
 type PlayStatus = 'loading' | 'playing' | 'offline' | 'error';
 
@@ -29,22 +14,9 @@ export default function LivePage({
   const { roomId } = use(params);
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [channel, setChannel] = useState<Channel | null>(null);
+  const channel = getMockChannel(roomId);
   const [playStatus, setPlayStatus] = useState<PlayStatus>('loading');
-  const [notFound, setNotFound] = useState(false);
-  const [showChat, setShowChat] = useState(true);
 
-  useEffect(() => {
-    fetch(`/api/channels/${roomId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.ok) setChannel(d.channel);
-        else setNotFound(true);
-      })
-      .catch(() => setNotFound(true));
-  }, [roomId]);
-
-  // 播放
   useEffect(() => {
     if (!channel?.streamUrl) {
       if (channel) setPlayStatus('offline');
@@ -61,7 +33,7 @@ export default function LivePage({
       setPlayStatus('loading');
 
       if (v.canPlayType('application/vnd.apple.mpegurl')) {
-        v.src = channel.streamUrl!;
+        v.src = channel.streamUrl;
         v.addEventListener('playing', () => {
           if (!cancelled) setPlayStatus('playing');
         });
@@ -83,9 +55,8 @@ export default function LivePage({
         hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          backBufferLength: 90,
         });
-        hls.loadSource(channel.streamUrl!);
+        hls.loadSource(channel.streamUrl);
         hls.attachMedia(v);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           v.play().catch(() => {});
@@ -103,9 +74,7 @@ export default function LivePage({
 
     return () => {
       cancelled = true;
-      try {
-        hls?.destroy();
-      } catch {}
+      try { hls?.destroy(); } catch {}
     };
   }, [channel?.streamUrl]);
 
@@ -119,7 +88,7 @@ export default function LivePage({
     }
   };
 
-  if (notFound) {
+  if (!channel) {
     return (
       <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center gap-4">
         <div className="text-5xl opacity-40">⚽</div>
@@ -133,17 +102,14 @@ export default function LivePage({
 
   return (
     <main className="min-h-screen bg-slate-900 text-white">
-      {/* 顶部栏 */}
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between">
           <Link href="/" className="text-slate-300 text-sm flex items-center gap-1">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M15 18l-6-6 6-6"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                stroke="currentColor" strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round"
               />
             </svg>
             返回
@@ -167,7 +133,6 @@ export default function LivePage({
       </header>
 
       <div className="max-w-5xl mx-auto">
-        {/* 播放器 */}
         <div ref={wrapRef} className="relative aspect-video bg-black">
           <video
             ref={videoRef}
@@ -211,61 +176,46 @@ export default function LivePage({
           </button>
         </div>
 
-        {/* 比分栏 */}
-        {channel && (
-          <div className="px-4 py-4 bg-slate-900 border-b border-slate-800">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
-              <span>{channel.leagueIcon}</span>
-              <span>{channel.league}</span>
-              {channel.status === 'live' && channel.minute != null && (
-                <>
-                  <span>·</span>
-                  <span className="text-red-400">{channel.minute}'</span>
-                </>
-              )}
-            </div>
+        <div className="px-4 py-4 bg-slate-900 border-b border-slate-800">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
+            <span>{channel.leagueIcon}</span>
+            <span>{channel.league}</span>
+            {channel.minute != null && (
+              <>
+                <span>·</span>
+                <span className="text-red-400">{channel.minute}'</span>
+              </>
+            )}
+          </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex-1 text-center">
-                <div className="text-base font-semibold truncate">
-                  {channel.home}
-                </div>
-              </div>
-              <div className="px-6">
-                <div className="text-3xl font-bold tabular-nums">
-                  {channel.homeScore ?? '-'} : {channel.awayScore ?? '-'}
-                </div>
-              </div>
-              <div className="flex-1 text-center">
-                <div className="text-base font-semibold truncate">
-                  {channel.away}
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 text-center">
+              <div className="text-base font-semibold truncate">
+                {channel.home}
               </div>
             </div>
-
-            <div className="mt-3 text-center text-xs text-slate-500">
-              {channel.viewers} 人正在观看
+            <div className="px-6">
+              <div className="text-3xl font-bold tabular-nums">
+                {channel.homeScore ?? '-'} : {channel.awayScore ?? '-'}
+              </div>
+            </div>
+            <div className="flex-1 text-center">
+              <div className="text-base font-semibold truncate">
+                {channel.away}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* 聊天开关 */}
-        <div className="border-b border-slate-800">
-          <button
-            onClick={() => setShowChat((v) => !v)}
-            className="w-full px-4 py-3 flex items-center justify-between text-sm text-slate-400 hover:bg-slate-800/50 transition"
-          >
-            <span>💬 聊天室</span>
-            <span className="text-xs">{showChat ? '收起' : '展开'}</span>
-          </button>
+          <div className="mt-3 text-center text-xs text-slate-500">
+            {channel.viewers} 人正在观看
+          </div>
         </div>
 
-        {/* 聊天 */}
-        {showChat && channel && (
-          <div className="h-[420px]">
-            <ChatBox channelId={channel.id} />
+        <div className="px-4 py-4">
+          <div className="rounded-xl bg-slate-800/50 border border-slate-700 p-6 text-center text-xs text-slate-500">
+            登录后即可参与聊天
           </div>
-        )}
+        </div>
 
         <div className="h-12" />
       </div>
