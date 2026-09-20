@@ -1,0 +1,27 @@
+name: Update IPTV Streams
+
+on:
+  schedule:
+    # 每天 UTC 0 点（北京时间 8 点）执行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Update streams
+        run: node scripts/update-streams.js
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add src/config/channels.ts
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: auto update streams"
+          git push
