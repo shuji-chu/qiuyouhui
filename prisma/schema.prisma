@@ -1,160 +1,30 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
-// ==========================================
-// 用户
-// ==========================================
 model User {
   id            String   @id @default(cuid())
   email         String?  @unique
   emailVerified DateTime?
 
-  // SafeW 授权字段
-  safewId       BigInt?  @unique
+  safewId       String?  @unique
   safewUsername String?
   firstName     String?
   lastName      String?
   photoUrl      String?
 
-  // 展示名：优先 username，其次 firstName，其次 email 前缀
   displayName   String?
-
-  role          Role     @default(USER)
+  role          String   @default("USER")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  messages      Message[]
-  predictions   Prediction[]
+  verifyCode       String?
+  verifyCodeExpiry DateTime?
 
-  @@index([safewId])
   @@index([email])
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-// ==========================================
-// 邮箱魔法链接的一次性 token
-// ==========================================
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ==========================================
-// 比赛
-// 数据从外部 API 同步，externalId 唯一标识
-// ==========================================
-model Match {
-  id           String      @id @default(cuid())
-  externalId   String      @unique          // API-Football 的 fixture id
-  leagueSlug   String                        // 关联 src/config/leagues.ts 的 slug
-  season       String?                       // 例如 "2025-2026"
-  round        String?                       // 例如 "第 28 轮"
-
-  homeTeam     String
-  awayTeam     String
-  homeTeamLogo String?
-  awayTeamLogo String?
-
-  homeScore    Int?
-  awayScore    Int?
-
-  status       MatchStatus @default(SCHEDULED)
-  minute       Int?                          // 进行中的分钟数
-  kickoff      DateTime
-  venue        String?
-  referee      String?
-
-  streamUrl    String?                       // 关联的直播流地址，可空
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  messages     Message[]
-  predictions  Prediction[]
-
-  @@index([leagueSlug])
-  @@index([kickoff])
-  @@index([status])
-}
-
-enum MatchStatus {
-  SCHEDULED   // 未开始
-  LIVE        // 进行中
-  HT          // 中场
-  FT          // 完场
-  POSTPONED   // 延期
-  CANCELLED   // 取消
-}
-
-// ==========================================
-// 聊天消息（比赛讨论区 + 直播间弹幕共用）
-// ==========================================
-model Message {
-  id        String      @id @default(cuid())
-  userId    String
-  matchId   String?                          // 关联比赛，可空（比如大厅聊天）
-  roomId    String?                          // 直播间房间 ID，可空
-
-  content   String      @db.Text
-  type      MessageType @default(TEXT)
-
-  createdAt DateTime    @default(now())
-
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  match     Match?      @relation(fields: [matchId], references: [id], onDelete: SetNull)
-
-  @@index([matchId, createdAt])
-  @@index([roomId, createdAt])
-  @@index([userId])
-}
-
-enum MessageType {
-  TEXT
-  SYSTEM      // 系统消息：进球、红黄牌
-  IMAGE
-}
-
-// ==========================================
-// 比分竞猜
-// ==========================================
-model Prediction {
-  id         String        @id @default(cuid())
-  userId     String
-  matchId    String
-
-  pick       PredictionPick
-  homeScore  Int?                             // 可选：预测具体比分
-  awayScore  Int?
-
-  isCorrect  Boolean?                         // 结算后填
-  points     Int             @default(0)      // 竞猜积分
-
-  createdAt  DateTime        @default(now())
-
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  match      Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, matchId])                 // 一人一场只能猜一次
-  @@index([matchId])
-  @@index([userId])
-}
-
-enum PredictionPick {
-  HOME
-  DRAW
-  AWAY
 }
