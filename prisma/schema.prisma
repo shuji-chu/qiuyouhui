@@ -7,18 +7,27 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+// ============================================
+// 用户
+// ============================================
 model User {
   id            String   @id @default(cuid())
   email         String?  @unique
+  emailVerified DateTime?
   passwordHash  String?
 
+  // SafeW 登录
   safewId       String?  @unique
   safewUsername String?
 
+  // Telegram 登录
   telegramId       String? @unique
   telegramUsername String?
 
+  firstName     String?
+  lastName      String?
   photoUrl      String?
+
   displayName   String?
   role          String   @default("USER")
   points        Int      @default(0)
@@ -26,39 +35,86 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  messages      ChatMessage[]
   favorites     Favorite[]
   predictions   Prediction[]
-  messages      ChatMessage[]
 
   @@index([email])
 }
 
-// 直播/回放频道
+// ============================================
+// 邮箱验证码（注册/绑定用，暂留）
+// ============================================
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ============================================
+// 直播频道
+// status: live | upcoming | replay | offline
+// ============================================
 model Channel {
   id          String   @id @default(cuid())
   name        String
-  league      String
+  league      String   @default("综合")
   leagueIcon  String   @default("⚽")
+
   home        String?
   away        String?
   homeScore   Int?
   awayScore   Int?
   minute      Int?
-  status      String   @default("live") // live | replay | upcoming
+
+  status      String   @default("live")
   coverUrl    String?
   streamUrl   String?
   viewers     Int      @default(0)
+
   startAt     DateTime?
   duration    Int?
+
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   favorites   Favorite[]
+  messages    ChatMessage[]
 
   @@index([status])
   @@index([league])
 }
 
+// ============================================
+// 回放视频（YouTube 嵌入）
+// ============================================
+model ReplayVideo {
+  id        String   @id @default(cuid())
+  title     String
+  league    String   @default("综合")
+  leagueIcon String  @default("⚽")
+
+  home      String?
+  away      String?
+  score     String?
+
+  videoId   String              // YouTube 视频 ID
+  duration  Int?                // 时长（秒）
+
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([league])
+  @@index([publishedAt])
+}
+
+// ============================================
 // 收藏
+// ============================================
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
@@ -72,12 +128,14 @@ model Favorite {
   @@index([userId])
 }
 
-// 竞猜（虚拟积分）
+// ============================================
+// 竞猜（虚拟积分，暂留）
+// ============================================
 model Prediction {
   id         String   @id @default(cuid())
   userId     String
   channelId  String
-  pick       String   // home | draw | away
+  pick       String
   points     Int      @default(10)
   isCorrect  Boolean?
   createdAt  DateTime @default(now())
@@ -88,7 +146,9 @@ model Prediction {
   @@index([userId])
 }
 
+// ============================================
 // 直播间聊天
+// ============================================
 model ChatMessage {
   id         String   @id @default(cuid())
   userId     String
@@ -97,6 +157,8 @@ model ChatMessage {
   createdAt  DateTime @default(now())
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@index([channelId, createdAt])
+  @@index([userId])
 }
