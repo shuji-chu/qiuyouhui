@@ -1,24 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useUser } from '@/hooks/useUser';
-import { useFavorites } from '@/hooks/useFavorites';
+import { useState } from 'react';
+import { MOCK_CHANNELS } from '@/data/mock';
 import { BottomNav } from '@/components/layout/BottomNav';
-
-interface Channel {
-  id: string;
-  name: string;
-  league: string;
-  leagueIcon: string;
-  home: string | null;
-  away: string | null;
-  homeScore: number | null;
-  awayScore: number | null;
-  minute: number | null;
-  status: string;
-  viewers: number;
-}
 
 const TOP_TABS = [
   { key: 'live', label: '直播中' },
@@ -35,34 +20,18 @@ const LEAGUES = [
   { key: '法甲', label: '法甲' },
   { key: '欧冠', label: '欧冠' },
   { key: '德乙', label: '德乙' },
-  { key: 'J联赛', label: '日韩' },
 ];
 
 export default function HomePage() {
-  const { user, loading, logout } = useUser();
-  const { isFavorite, toggle } = useFavorites();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState('live');
   const [league, setLeague] = useState('all');
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [fetching, setFetching] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    setFetching(true);
-    const p = new URLSearchParams();
-    p.set('status', tab);
-    if (league !== 'all') p.set('league', league);
-    fetch(`/api/channels?${p}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled && d.ok) setChannels(d.channels);
-      })
-      .finally(() => !cancelled && setFetching(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, league]);
+  const filtered = MOCK_CHANNELS.filter((c) => {
+    if (tab === 'replay') return false;
+    if (c.status !== tab) return false;
+    if (league !== 'all' && c.league !== league) return false;
+    return true;
+  });
 
   return (
     <main className="min-h-screen pb-20 bg-slate-50">
@@ -79,67 +48,20 @@ export default function HomePage() {
               </div>
             </div>
           </Link>
-
-          {loading ? (
-            <div className="w-20 h-8 rounded-full bg-slate-100 animate-pulse" />
-          ) : user ? (
-            <div className="relative">
-              <button onClick={() => setMenuOpen((v) => !v)}>
-                {user.photoUrl ? (
-                  <img src={user.photoUrl} alt="" className="w-9 h-9 rounded-full" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-sm font-semibold text-white">
-                    {(user.displayName || user.email || '?')[0].toUpperCase()}
-                  </div>
-                )}
-              </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-20 w-40 rounded-xl bg-white border border-slate-200 overflow-hidden shadow-lg">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      个人中心
-                    </Link>
-                    <Link
-                      href="/favorites"
-                      className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-t border-slate-100"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      我的收藏
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        logout();
-                      }}
-                      className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-50 border-t border-slate-100"
-                    >
-                      退出登录
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="px-4 py-1.5 text-sm font-medium rounded-full bg-emerald-600 text-white"
-              >
-                登录
-              </Link>
-              <Link
-                href="/login?mode=register"
-                className="px-4 py-1.5 text-sm font-medium rounded-full bg-slate-100 text-slate-700"
-              >
-                注册
-              </Link>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="px-4 py-1.5 text-sm font-medium rounded-full bg-emerald-600 text-white"
+            >
+              登录
+            </Link>
+            <Link
+              href="/login?mode=register"
+              className="px-4 py-1.5 text-sm font-medium rounded-full bg-slate-100 text-slate-700"
+            >
+              注册
+            </Link>
+          </div>
         </div>
 
         <div className="max-w-3xl mx-auto px-4 pb-2.5">
@@ -179,38 +101,19 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 pt-3">
-        {fetching && (
-          <div className="space-y-2.5">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-28 rounded-xl bg-white border border-slate-100 animate-pulse"
-              />
-            ))}
-          </div>
-        )}
-
-        {!fetching && channels.length === 0 && (
+        {tab === 'replay' ? (
+          <ReplaySection />
+        ) : filtered.length === 0 ? (
           <div className="py-24 text-center">
             <div className="text-4xl mb-3 opacity-25">⚽</div>
             <p className="text-sm text-slate-400">
-              {tab === 'live' && '暂无正在进行的比赛'}
-              {tab === 'upcoming' && '今日暂无赛程'}
-              {tab === 'replay' && '暂无回放'}
+              {tab === 'live' ? '暂无正在进行的比赛' : '今日暂无赛程'}
             </p>
           </div>
-        )}
-
-        {!fetching && channels.length > 0 && (
+        ) : (
           <div className="space-y-2.5">
-            {channels.map((ch) => (
-              <MatchCard
-                key={ch.id}
-                ch={ch}
-                isFav={isFavorite(ch.id)}
-                onToggleFav={() => toggle(ch.id)}
-                isLoggedIn={!!user}
-              />
+            {filtered.map((ch) => (
+              <MatchCard key={ch.id} ch={ch} />
             ))}
           </div>
         )}
@@ -221,29 +124,9 @@ export default function HomePage() {
   );
 }
 
-function MatchCard({
-  ch,
-  isFav,
-  onToggleFav,
-  isLoggedIn,
-}: {
-  ch: Channel;
-  isFav: boolean;
-  onToggleFav: () => void;
-  isLoggedIn: boolean;
-}) {
+function MatchCard({ ch }: { ch: (typeof MOCK_CHANNELS)[0] }) {
   const isLive = ch.status === 'live';
   const isReplay = ch.status === 'replay';
-
-  const handleFav = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isLoggedIn) {
-      alert('请先登录');
-      return;
-    }
-    onToggleFav();
-  };
 
   return (
     <Link
@@ -255,44 +138,26 @@ function MatchCard({
           <span className="text-sm">{ch.leagueIcon}</span>
           <span className="text-[11px] text-slate-500 truncate">{ch.league}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {isLive ? (
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              LIVE {ch.minute != null && `${ch.minute}'`}
-            </span>
-          ) : isReplay ? (
-            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-              回放
-            </span>
-          ) : (
-            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-              即将
-            </span>
-          )}
-          <button
-            onClick={handleFav}
-            className={`w-6 h-6 flex items-center justify-center transition ${
-              isFav ? 'text-amber-400' : 'text-slate-300'
-            }`}
-            aria-label="收藏"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'}>
-              <path
-                d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9L12 3z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+        {isLive ? (
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            LIVE {ch.minute != null && `${ch.minute}'`}
+          </span>
+        ) : isReplay ? (
+          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+            回放
+          </span>
+        ) : (
+          <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+            即将
+          </span>
+        )}
       </div>
 
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[15px] text-slate-800 font-medium truncate">
-            {ch.home || '主队'}
+            {ch.home}
           </span>
           <span className="text-[18px] font-bold text-slate-900 tabular-nums">
             {ch.homeScore ?? '-'}
@@ -300,7 +165,7 @@ function MatchCard({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[15px] text-slate-800 font-medium truncate">
-            {ch.away || '客队'}
+            {ch.away}
           </span>
           <span className="text-[18px] font-bold text-slate-900 tabular-nums">
             {ch.awayScore ?? '-'}
@@ -320,7 +185,7 @@ function MatchCard({
           {formatViewers(ch.viewers)} 人观看
         </div>
         <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5">
-          {isLive ? '进入直播间' : isReplay ? '观看回放' : '查看详情'}
+          {isLive ? '进入直播间' : '查看详情'}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
             <path
               d="M9 6l6 6-6 6"
@@ -331,6 +196,35 @@ function MatchCard({
         </span>
       </div>
     </Link>
+  );
+}
+
+function ReplaySection() {
+  const replays = require('@/data/mock').MOCK_REPLAYS;
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {replays.map((r: any) => (
+        <Link key={r.id} href={`/replay/${r.id}`} className="block">
+          <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-900">
+            <img
+              src={`https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <p className="text-[12px] text-slate-800 mt-1.5 truncate">
+            {r.title}
+          </p>
+        </Link>
+      ))}
+    </div>
   );
 }
 
