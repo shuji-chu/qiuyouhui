@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { SafeWLoginButton } from '@/components/auth/SafeWLoginButton';
 
 type Mode = 'login' | 'register';
 
@@ -14,29 +15,18 @@ export default function LoginPage() {
 
   const submit = async () => {
     setError('');
+    if (!email || !password) return setError('请填写邮箱和密码');
 
-    if (!email || !password) {
-      setError('请填写邮箱和密码');
-      return;
-    }
     if (mode === 'register') {
-      if (password.length < 8) {
-        setError('密码至少 8 位');
-        return;
-      }
-      if (!/[a-zA-Z]/.test(password)) {
-        setError('密码需包含字母');
-        return;
-      }
-      if (!/\d/.test(password)) {
-        setError('密码需包含数字');
-        return;
-      }
+      if (password.length < 8) return setError('密码至少 8 位');
+      if (!/[a-zA-Z]/.test(password)) return setError('密码需包含字母');
+      if (!/\d/.test(password)) return setError('密码需包含数字');
     }
 
     setLoading(true);
     try {
-      const url = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const url =
+        mode === 'login' ? '/api/auth/login' : '/api/auth/register';
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,12 +47,16 @@ export default function LoginPage() {
     setError('');
   };
 
+  const handleSafeWSuccess = () => {
+    window.location.href = '/';
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 顶部品牌 */}
       <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
         <div className="w-full max-w-[400px]">
-          <div className="text-center mb-8">
+          {/* Logo */}
+          <div className="text-center mb-7">
             <img
               src="/logo.png"
               alt="球友会"
@@ -76,9 +70,31 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* 卡片 */}
+          {/* SafeW 一键登录（最优先） */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-4">
+            <p className="text-xs font-medium text-slate-700 mb-3 text-center">
+              一键登录
+            </p>
+            <SafeWLoginButton
+              onSuccess={handleSafeWSuccess}
+              onError={setError}
+            />
+          </div>
+
+          {/* 分隔线 */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-slate-50 px-3 text-xs text-slate-400">
+                或使用邮箱
+              </span>
+            </div>
+          </div>
+
+          {/* 邮箱卡 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-            {/* Tab */}
             <div className="grid grid-cols-2 border-b border-slate-200">
               <TabBtn
                 active={mode === 'login'}
@@ -95,14 +111,12 @@ export default function LoginPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* 错误提示 */}
               {error && (
                 <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
                   {error}
                 </div>
               )}
 
-              {/* 邮箱 */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   邮箱地址
@@ -117,29 +131,19 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* 密码 */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-slate-700">
-                    密码
-                  </label>
-                  {mode === 'login' && (
-                    <button
-                      type="button"
-                      className="text-xs text-emerald-600 hover:text-emerald-700"
-                      onClick={() => alert('忘记密码功能即将上线')}
-                    >
-                      忘记密码？
-                    </button>
-                  )}
-                </div>
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  密码
+                </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submit()}
                   placeholder={
-                    mode === 'register' ? '至少 8 位，含字母和数字' : '请输入密码'
+                    mode === 'register'
+                      ? '至少 8 位，含字母和数字'
+                      : '请输入密码'
                   }
                   autoComplete={
                     mode === 'login' ? 'current-password' : 'new-password'
@@ -148,7 +152,6 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* 提交 */}
               <button
                 onClick={submit}
                 disabled={loading || !email || !password}
@@ -163,7 +166,6 @@ export default function LoginPage() {
                   : '注册并登录'}
               </button>
 
-              {/* 提示 */}
               {mode === 'register' && (
                 <p className="text-xs text-slate-400 text-center pt-1">
                   注册即表示同意
@@ -177,35 +179,8 @@ export default function LoginPage() {
                 </p>
               )}
             </div>
-
-            {/* 分隔线 */}
-            <div className="relative px-6">
-              <div className="absolute inset-x-6 top-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-xs text-slate-400 -translate-y-1/2 inline-block">
-                  或使用以下方式
-                </span>
-              </div>
-            </div>
-
-            {/* 第三方登录 */}
-            <div className="p-6 pt-2 space-y-2.5">
-              <ThirdPartyBtn
-                icon={<SafeWIcon />}
-                label="使用 SafeW 登录"
-                onClick={() => alert('SafeW 登录即将开放')}
-              />
-              <ThirdPartyBtn
-                icon={<TelegramIcon />}
-                label="使用 Telegram 登录"
-                onClick={() => alert('Telegram 登录即将开放')}
-              />
-            </div>
           </div>
 
-          {/* 底部 */}
           <div className="mt-6 text-center">
             <Link
               href="/"
@@ -219,8 +194,6 @@ export default function LoginPage() {
     </main>
   );
 }
-
-// ---------- 小组件 ----------
 
 function TabBtn({
   active,
@@ -243,52 +216,5 @@ function TabBtn({
         <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
       )}
     </button>
-  );
-}
-
-function ThirdPartyBtn({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full h-11 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg transition"
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function SafeWIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" fill="#00b96b" />
-      <path
-        d="M8 12l3 3 5-6"
-        stroke="#fff"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function TelegramIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" fill="#229ED9" />
-      <path
-        d="M6.5 12l9.5-5.5-2 9.5-3-2-1.5 2v-2.5L6.5 12z"
-        fill="#fff"
-      />
-    </svg>
   );
 }
