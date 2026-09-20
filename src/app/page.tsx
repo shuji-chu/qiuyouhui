@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { groupLeagues } from '@/config/leagues';
 import { useUser } from '@/hooks/useUser';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { LivePreview } from '@/components/match/LivePreview';
 
 export default function HomePage() {
   const { user, loading, logout } = useUser();
@@ -11,8 +13,9 @@ export default function HomePage() {
   const leagueGroups = groupLeagues();
 
   return (
-    <main className="min-h-screen">
-      <header className="sticky top-0 z-10 glass border-b border-white/40">
+    <main className="min-h-screen pb-20">
+      {/* 顶部栏 */}
+      <header className="sticky top-0 z-30 glass border-b border-white/40">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="球友会" className="w-8 h-8 rounded-full" />
@@ -30,12 +33,12 @@ export default function HomePage() {
                 {user.photoUrl ? (
                   <img src={user.photoUrl} alt="" className="w-7 h-7 rounded-full" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-xs font-semibold text-white">
+                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-semibold text-white">
                     {(user.displayName || user.email || '?')[0].toUpperCase()}
                   </div>
                 )}
                 <span className="text-sm max-w-[100px] truncate text-slate-700">
-                  {user.displayName || user.email}
+                  {user.displayName || user.email || '未绑定邮箱'}
                 </span>
               </button>
 
@@ -69,7 +72,7 @@ export default function HomePage() {
           ) : (
             <Link
               href="/login"
-              className="text-sm px-4 py-1.5 rounded-full bg-brand hover:bg-brand-dark text-white transition shadow-sm"
+              className="text-sm px-4 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm"
             >
               登录
             </Link>
@@ -77,9 +80,35 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-5">
+        {/* 正在直播 */}
         <section className="mb-8">
-          <h2 className="text-sm text-slate-500 mb-3 font-medium">联赛分类</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              正在直播
+            </h2>
+            <Link
+              href="/live"
+              className="text-xs text-slate-400 hover:text-slate-700 transition"
+            >
+              全部 ›
+            </Link>
+          </div>
+
+          <LivePreview
+            roomId="streamkey"
+            title="英超 · 利物浦 vs 曼城"
+            viewers={1243}
+          />
+        </section>
+
+        {/* 联赛分类 */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-slate-700">联赛分类</h2>
+          </div>
+
           <div className="space-y-4">
             {leagueGroups.map(({ group, items }) => (
               <div key={group}>
@@ -89,7 +118,7 @@ export default function HomePage() {
                     <Link
                       key={l.slug}
                       href={`/category/${l.slug}`}
-                      className="px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 hover:border-brand hover:shadow-sm transition text-sm text-slate-700"
+                      className="px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-sm transition text-sm text-slate-700"
                     >
                       <span className="mr-1">{l.icon}</span>
                       {l.name}
@@ -101,13 +130,14 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* 今日比赛 */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm text-slate-500 font-medium">今日比赛</h2>
+            <h2 className="text-sm font-medium text-slate-700">今日比赛</h2>
             <span className="text-xs text-slate-400">北京时间</span>
           </div>
 
-          <div className="rounded-2xl bg-white/80 border border-slate-200 p-10 text-center shadow-sm">
+          <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center shadow-sm">
             <div className="text-3xl mb-3">⚽</div>
             <div className="text-sm text-slate-500">暂无比赛数据</div>
             <div className="text-xs text-slate-400 mt-2">
@@ -116,6 +146,9 @@ export default function HomePage() {
           </div>
         </section>
       </div>
+
+      {/* 底部导航 */}
+      <BottomNav />
     </main>
   );
 }
