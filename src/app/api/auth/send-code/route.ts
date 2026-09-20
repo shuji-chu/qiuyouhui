@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = schema.safeParse(body);
-
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0].message },
@@ -21,33 +20,25 @@ export async function POST(req: NextRequest) {
 
     const { email } = parsed.data;
 
-    // 限流：60 秒内不允许重复发送
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing?.verifyCodeExpiry) {
-      const sentAt = existing.verifyCodeExpiry.getTime() - 5 * 60 * 1000;
-      const elapsed = Date.now() - sentAt;
-      if (elapsed < 60 * 1000) {
-        return NextResponse.json(
-          { error: '发送太频繁，请稍后再试' },
-          { status: 429 }
-        );
-      }
+    // 限流：60 秒内不能重复发送
+    const latest = await prisma.emailVerification.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (latest && Date.now() - latest.createdAt.getTime() < 60 * 1000) {
+      return NextResponse.json(
+        { error: '发送太频繁，请稍后再试' },
+        { status: 429 }
+      );
     }
 
     const code = generateCode();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    await prisma.user.upsert({
-      where: { email },
-      update: {
-        verifyCode: code,
-        verifyCodeExpiry: expiry,
-      },
-      create: {
-        email,
-        verifyCode: code,
-        verifyCodeExpiry: expiry,
-      },
+    // 清掉旧验证码，写新的
+    await prisma.emailVerification.deleteMany({ where: { email } });
+    await prisma.emailVerification.create({
+      data: { email, code, expires },
     });
 
     const result = await sendVerifyCode(email, code);
