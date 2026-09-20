@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = schema.safeParse(body);
-
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0].message },
@@ -22,55 +21,48 @@ export async function POST(req: NextRequest) {
 
     const { email, code } = parsed.data;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const record = await prisma.emailVerification.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    if (!user || !user.verifyCode || !user.verifyCodeExpiry) {
-      return NextResponse.json(
-        { error: '请先获取验证码' },
-        { status: 400 }
-      );
+    if (!record) {
+      return NextResponse.json({ error: '请先获取验证码' }, { status: 400 });
+    }
+    if (new Date() > record.expires) {
+      return NextResponse.json({ error: '验证码已过期' }, { status: 400 });
+    }
+    if (record.code !== code) {
+      return NextResponse.json({ error: '验证码错误' }, { status: 400 });
     }
 
-    if (new Date() > user.verifyCodeExpiry) {
-      return NextResponse.json(
-        { error: '验证码已过期，请重新获取' },
-        { status: 400 }
-      );
-    }
+    // 用完删除
+    await prisma.emailVerification.delete({ where: { id: record.id } });
 
-    if (user.verifyCode !== code) {
-      return NextResponse.json(
-        { error: '验证码错误' },
-        { status: 400 }
-      );
-    }
+    const displayName = email.split('@')[0];
 
-    const displayName = user.displayName || email.split('@')[0];
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {
         emailVerified: new Date(),
-        verifyCode: null,
-        verifyCodeExpiry: null,
+        displayName: undefined,
+      },
+      create: {
+        email,
+        emailVerified: new Date(),
         displayName,
       },
     });
 
-    // ⭐ 关键：种下会话 cookie
     await createSession({
       userId: user.id,
       email: user.email ?? undefined,
-      displayName,
+      displayName: user.displayName ?? undefined,
     });
 
     return NextResponse.json({
       ok: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName,
-      },
+      user: { id: user.id, email: user.email, displayName: user.displayName },
     });
   } catch (err) {
     console.error('[verify-code]', err);
