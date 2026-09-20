@@ -12,6 +12,7 @@ export interface CurrentUser {
 
 interface UseUserResult {
   user: CurrentUser | null;
+  isAdmin: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
@@ -19,6 +20,7 @@ interface UseUserResult {
 
 export function useUser(): UseUserResult {
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -26,8 +28,10 @@ export function useUser(): UseUserResult {
       const res = await fetch('/api/auth/me', { cache: 'no-store' });
       const data = await res.json();
       setUser(data.user ?? null);
+      setIsAdmin(!!data.isAdmin);
     } catch {
       setUser(null);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
     }
@@ -36,6 +40,7 @@ export function useUser(): UseUserResult {
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    setIsAdmin(false);
     window.location.href = '/';
   }, []);
 
@@ -43,5 +48,5 @@ export function useUser(): UseUserResult {
     refresh();
   }, [refresh]);
 
-  return { user, loading, refresh, logout };
+  return { user, isAdmin, loading, refresh, logout };
 }
