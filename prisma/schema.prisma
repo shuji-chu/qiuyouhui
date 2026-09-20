@@ -11,9 +11,14 @@ model User {
   id            String   @id @default(cuid())
   email         String?  @unique
   emailVerified DateTime?
+  passwordHash  String?
 
   safewId       String?  @unique
   safewUsername String?
+
+  telegramId       String? @unique
+  telegramUsername String?
+
   firstName     String?
   lastName      String?
   photoUrl      String?
@@ -26,7 +31,6 @@ model User {
   @@index([email])
 }
 
-// 独立的验证码表，登录和绑定共用
 model EmailVerification {
   id        String   @id @default(cuid())
   email     String
