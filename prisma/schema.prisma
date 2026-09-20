@@ -3,24 +3,19 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = "postgresql://postgres:5b19abOJQ2LwK4Ai@db.ngypjueoulpfbpsflest.supabase.co:5432/postgres"
 }
 
-// ============================================
-// 用户
-// ============================================
 model User {
   id            String   @id @default(cuid())
   email         String?  @unique
   emailVerified DateTime?
   passwordHash  String?
 
-  // SafeW 登录
   safewId       String?  @unique
   safewUsername String?
 
-  // Telegram 登录
   telegramId       String? @unique
   telegramUsername String?
 
@@ -42,9 +37,6 @@ model User {
   @@index([email])
 }
 
-// ============================================
-// 邮箱验证码（注册/绑定用，暂留）
-// ============================================
 model EmailVerification {
   id        String   @id @default(cuid())
   email     String
@@ -55,10 +47,6 @@ model EmailVerification {
   @@index([email])
 }
 
-// ============================================
-// 直播频道
-// status: live | upcoming | replay | offline
-// ============================================
 model Channel {
   id          String   @id @default(cuid())
   name        String
@@ -89,21 +77,18 @@ model Channel {
   @@index([league])
 }
 
-// ============================================
-// 回放视频（YouTube 嵌入）
-// ============================================
 model ReplayVideo {
-  id        String   @id @default(cuid())
-  title     String
-  league    String   @default("综合")
-  leagueIcon String  @default("⚽")
+  id         String   @id @default(cuid())
+  title      String
+  league     String   @default("综合")
+  leagueIcon String   @default("⚽")
 
   home      String?
   away      String?
   score     String?
 
-  videoId   String              // YouTube 视频 ID
-  duration  Int?                // 时长（秒）
+  videoId   String
+  duration  Int?
 
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -112,9 +97,6 @@ model ReplayVideo {
   @@index([publishedAt])
 }
 
-// ============================================
-// 收藏
-// ============================================
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
@@ -128,9 +110,6 @@ model Favorite {
   @@index([userId])
 }
 
-// ============================================
-// 竞猜（虚拟积分，暂留）
-// ============================================
 model Prediction {
   id         String   @id @default(cuid())
   userId     String
@@ -146,9 +125,6 @@ model Prediction {
   @@index([userId])
 }
 
-// ============================================
-// 直播间聊天
-// ============================================
 model ChatMessage {
   id         String   @id @default(cuid())
   userId     String
