@@ -6,7 +6,6 @@ import { BottomNav } from '@/components/layout/BottomNav';
 
 const MENU = [
   { href: '/favorites', label: '我的收藏', icon: StarIcon, color: 'emerald' },
-  { href: '/predictions', label: '我的竞猜', icon: TargetIcon, color: 'amber' },
   { href: '/history', label: '观看历史', icon: ClockIcon, color: 'sky' },
   { href: '/messages', label: '消息中心', icon: BellIcon, color: 'violet' },
   { href: '/settings', label: '设置', icon: GearIcon, color: 'slate' },
@@ -15,18 +14,16 @@ const MENU = [
 
 const ICON_BG: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-600',
-  amber: 'bg-amber-50 text-amber-600',
   sky: 'bg-sky-50 text-sky-600',
   violet: 'bg-violet-50 text-violet-600',
   slate: 'bg-slate-100 text-slate-600',
 };
 
 export default function ProfilePage() {
-  const { user, loading, logout } = useUser();
+  const { user, isAdmin, loading, logout } = useUser();
 
   return (
     <main className="min-h-screen pb-20 bg-slate-50">
-      {/* 顶部品牌 */}
       <header className="bg-white">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <span className="text-base font-semibold text-slate-800">我的</span>
@@ -36,7 +33,6 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* 用户卡 */}
       <div className="bg-white pb-6">
         <div className="max-w-3xl mx-auto px-4 pt-2">
           {loading ? (
@@ -64,12 +60,6 @@ export default function ProfilePage() {
                   {user.email || '未绑定邮箱'}
                 </p>
               </div>
-              <Link
-                href="/settings"
-                className="px-3 py-1.5 text-[12px] rounded-full bg-slate-100 text-slate-600"
-              >
-                编辑
-              </Link>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -77,11 +67,9 @@ export default function ProfilePage() {
                 👤
               </div>
               <div className="flex-1">
-                <p className="text-[14px] font-medium text-slate-700">
-                  未登录
-                </p>
+                <p className="text-[14px] font-medium text-slate-700">未登录</p>
                 <p className="text-[12px] text-slate-400 mt-0.5">
-                  登录后收藏比赛、参与竞猜
+                  登录后收藏比赛、参与讨论
                 </p>
               </div>
               <div className="flex gap-2">
@@ -103,27 +91,42 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 数据卡（登录后显示） */}
-      {user && (
-        <div className="max-w-3xl mx-auto px-4 -mt-3">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl p-4 text-white flex items-center justify-between">
-            <div>
-              <p className="text-[11px] opacity-80">我的积分</p>
-              <p className="text-2xl font-bold tabular-nums mt-1">
-                {user.role === 'ADMIN' ? '—' : 0}
+      {/* 管理后台入口（仅管理员）*/}
+      {user && isAdmin && (
+        <div className="max-w-3xl mx-auto px-4 mt-3">
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-4 text-white active:opacity-90 transition"
+          >
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect
+                  x="3" y="4" width="18" height="16" rx="2"
+                  stroke="currentColor" strokeWidth="1.8"
+                />
+                <path
+                  d="M3 10h18M9 4v16"
+                  stroke="currentColor" strokeWidth="1.8"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold">管理后台</p>
+              <p className="text-[11px] text-white/70 mt-0.5">
+                管理频道和回放视频
               </p>
             </div>
-            <Link
-              href="/predictions"
-              className="px-3.5 py-1.5 bg-white/20 backdrop-blur rounded-full text-[12px] font-medium"
-            >
-              我的竞猜 →
-            </Link>
-          </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M9 6l6 6-6 6"
+                stroke="currentColor" strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
         </div>
       )}
 
-      {/* 功能网格 */}
       <div className="max-w-3xl mx-auto px-4 mt-4">
         <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
           <div className="grid grid-cols-3">
@@ -148,7 +151,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 退出登录 */}
       {user && (
         <div className="max-w-3xl mx-auto px-4 mt-4">
           <button
@@ -160,7 +162,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* 版本号 */}
       <p className="text-center text-[11px] text-slate-300 mt-8">
         球友会 · v0.1.0
       </p>
@@ -170,7 +171,6 @@ export default function ProfilePage() {
   );
 }
 
-// ============ 图标 ============
 function StarIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -178,15 +178,6 @@ function StarIcon() {
         d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9L12 3z"
         stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-function TargetIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
     </svg>
   );
 }
