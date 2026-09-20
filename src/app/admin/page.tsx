@@ -33,10 +33,9 @@ const EMPTY_FORM = {
 };
 
 export default function AdminPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isAdmin, loading: userLoading } = useUser();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
   const [editing, setEditing] = useState<Channel | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -46,25 +45,16 @@ export default function AdminPage() {
   const load = () => {
     setLoading(true);
     fetch('/api/admin/channels')
-      .then(async (r) => {
-        if (r.status === 403) {
-          setForbidden(true);
-          return;
-        }
-        return r.json();
-      })
-      .then((d) => d?.ok && setChannels(d.channels))
+      .then((r) => r.json())
+      .then((d) => d.ok && setChannels(d.channels))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    load();
-  }, [userLoading, user]);
+    if (user && isAdmin) load();
+    else setLoading(false);
+  }, [userLoading, user, isAdmin]);
 
   const openCreate = () => {
     setEditing(null);
@@ -95,7 +85,6 @@ export default function AdminPage() {
     setError('');
     if (!form.name.trim()) return setError('请填名称');
     if (!form.streamUrl.trim()) return setError('请填流地址');
-
     setSaving(true);
 
     const payload: any = {
@@ -116,7 +105,6 @@ export default function AdminPage() {
         ? `/api/admin/channels/${editing.id}`
         : '/api/admin/channels';
       const method = editing ? 'PUT' : 'POST';
-
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -124,7 +112,6 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '保存失败');
-
       setShowForm(false);
       load();
     } catch (e) {
@@ -148,22 +135,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <div className="text-4xl opacity-30">🔒</div>
-        <p className="text-sm text-slate-500">请先登录</p>
-        <Link
-          href="/login"
-          className="px-5 py-2 rounded-full bg-emerald-600 text-white text-sm"
-        >
-          去登录
-        </Link>
-      </main>
-    );
-  }
-
-  if (forbidden) {
+  if (!user || !isAdmin) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <div className="text-4xl opacity-30">🚫</div>
@@ -199,6 +171,22 @@ export default function AdminPage() {
           >
             + 新增
           </button>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 flex gap-4 pb-2.5">
+          <Link
+            href="/admin"
+            className="text-[13px] font-medium text-emerald-600 pb-1.5 relative"
+          >
+            频道
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2px] bg-emerald-600 rounded-full" />
+          </Link>
+          <Link
+            href="/admin/replays"
+            className="text-[13px] font-medium text-slate-500 pb-1.5"
+          >
+            回放
+          </Link>
         </div>
       </header>
 
@@ -285,7 +273,6 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* 表单弹窗 */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
@@ -440,7 +427,6 @@ export default function AdminPage() {
           border-radius: 10px;
           color: #1e293b;
           outline: none;
-          transition: border-color 0.15s;
         }
         .input:focus {
           border-color: #059669;
