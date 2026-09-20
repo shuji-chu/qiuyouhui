@@ -23,8 +23,16 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  verifyCode       String?
-  verifyCodeExpiry DateTime?
+  @@index([email])
+}
+
+// 独立的验证码表，登录和绑定共用
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expires   DateTime
+  createdAt DateTime @default(now())
 
   @@index([email])
 }
