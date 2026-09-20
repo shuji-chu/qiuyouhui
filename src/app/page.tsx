@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
+import { useFavorites } from '@/hooks/useFavorites';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 interface Channel {
@@ -39,6 +40,7 @@ const LEAGUES = [
 
 export default function HomePage() {
   const { user, loading, logout } = useUser();
+  const { isFavorite, toggle } = useFavorites();
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState('live');
   const [league, setLeague] = useState('all');
@@ -48,20 +50,15 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     setFetching(true);
-
     const p = new URLSearchParams();
     p.set('status', tab);
     if (league !== 'all') p.set('league', league);
-
     fetch(`/api/channels?${p}`)
       .then((r) => r.json())
       .then((d) => {
         if (!cancelled && d.ok) setChannels(d.channels);
       })
-      .finally(() => {
-        if (!cancelled) setFetching(false);
-      });
-
+      .finally(() => !cancelled && setFetching(false));
     return () => {
       cancelled = true;
     };
@@ -69,7 +66,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen pb-20 bg-slate-50">
-      {/* ===== 顶部品牌栏 ===== */}
       <header className="sticky top-0 z-30 bg-white">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -108,6 +104,13 @@ export default function HomePage() {
                     >
                       个人中心
                     </Link>
+                    <Link
+                      href="/favorites"
+                      className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-t border-slate-100"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      我的收藏
+                    </Link>
                     <button
                       onClick={() => {
                         setMenuOpen(false);
@@ -139,7 +142,6 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ===== 主 Tab（直播中/赛程/回放）===== */}
         <div className="max-w-3xl mx-auto px-4 pb-2.5">
           <div className="flex gap-2">
             {TOP_TABS.map((t) => (
@@ -158,7 +160,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ===== 联赛横滑 ===== */}
         <div className="max-w-3xl mx-auto px-4 pb-3 flex gap-4 overflow-x-auto scrollbar-hide border-b border-slate-100">
           {LEAGUES.map((l) => (
             <button
@@ -177,7 +178,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ===== 内容 ===== */}
       <div className="max-w-3xl mx-auto px-4 pt-3">
         {fetching && (
           <div className="space-y-2.5">
@@ -204,7 +204,13 @@ export default function HomePage() {
         {!fetching && channels.length > 0 && (
           <div className="space-y-2.5">
             {channels.map((ch) => (
-              <MatchCard key={ch.id} ch={ch} />
+              <MatchCard
+                key={ch.id}
+                ch={ch}
+                isFav={isFavorite(ch.id)}
+                onToggleFav={() => toggle(ch.id)}
+                isLoggedIn={!!user}
+              />
             ))}
           </div>
         )}
@@ -215,39 +221,74 @@ export default function HomePage() {
   );
 }
 
-// ========== 比赛卡片 ==========
-function MatchCard({ ch }: { ch: Channel }) {
+function MatchCard({
+  ch,
+  isFav,
+  onToggleFav,
+  isLoggedIn,
+}: {
+  ch: Channel;
+  isFav: boolean;
+  onToggleFav: () => void;
+  isLoggedIn: boolean;
+}) {
   const isLive = ch.status === 'live';
   const isReplay = ch.status === 'replay';
+
+  const handleFav = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoggedIn) {
+      alert('请先登录');
+      return;
+    }
+    onToggleFav();
+  };
 
   return (
     <Link
       href={`/live/${ch.id}`}
       className="block bg-white rounded-xl border border-slate-100 active:bg-slate-50 transition"
     >
-      {/* 头部 */}
       <div className="flex items-center justify-between px-4 pt-3">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-sm">{ch.leagueIcon}</span>
           <span className="text-[11px] text-slate-500 truncate">{ch.league}</span>
         </div>
-        {isLive ? (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            LIVE {ch.minute != null && `${ch.minute}'`}
-          </span>
-        ) : isReplay ? (
-          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-            回放
-          </span>
-        ) : (
-          <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-            即将
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isLive ? (
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              LIVE {ch.minute != null && `${ch.minute}'`}
+            </span>
+          ) : isReplay ? (
+            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+              回放
+            </span>
+          ) : (
+            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+              即将
+            </span>
+          )}
+          <button
+            onClick={handleFav}
+            className={`w-6 h-6 flex items-center justify-center transition ${
+              isFav ? 'text-amber-400' : 'text-slate-300'
+            }`}
+            aria-label="收藏"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'}>
+              <path
+                d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9L12 3z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* 对阵 */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[15px] text-slate-800 font-medium truncate">
@@ -267,7 +308,6 @@ function MatchCard({ ch }: { ch: Channel }) {
         </div>
       </div>
 
-      {/* 底部 */}
       <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-50">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
