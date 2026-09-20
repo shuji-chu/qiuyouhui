@@ -11,35 +11,30 @@ export default function HomePage() {
   const leagueGroups = groupLeagues();
 
   return (
-    <main className="min-h-screen bg-[var(--bg)]">
-      {/* 顶部栏 */}
-      <header className="sticky top-0 z-10 backdrop-blur-xl bg-black/60 border-b border-line">
+    <main className="min-h-screen">
+      <header className="sticky top-0 z-10 glass border-b border-white/40">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="球友会" className="w-8 h-8 rounded-full" />
-            <span className="text-base font-semibold">球友会</span>
+            <span className="text-base font-semibold text-slate-800">球友会</span>
           </div>
 
           {loading ? (
-            <div className="w-16 h-7 rounded-full bg-white/5 animate-pulse" />
+            <div className="w-16 h-7 rounded-full bg-slate-200/60 animate-pulse" />
           ) : user ? (
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-white/5 transition"
+                className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-white/60 transition"
               >
                 {user.photoUrl ? (
-                  <img
-                    src={user.photoUrl}
-                    alt=""
-                    className="w-7 h-7 rounded-full"
-                  />
+                  <img src={user.photoUrl} alt="" className="w-7 h-7 rounded-full" />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-xs font-semibold text-white">
                     {(user.displayName || user.email || '?')[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm max-w-[100px] truncate">
+                <span className="text-sm max-w-[100px] truncate text-slate-700">
                   {user.displayName || user.email}
                 </span>
               </button>
@@ -50,10 +45,10 @@ export default function HomePage() {
                     className="fixed inset-0 z-10"
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 z-20 w-40 rounded-xl bg-card border border-line overflow-hidden shadow-xl">
+                  <div className="absolute right-0 top-full mt-2 z-20 w-40 rounded-xl bg-white border border-slate-200 overflow-hidden shadow-lg">
                     <Link
                       href="/profile"
-                      className="block px-4 py-3 text-sm hover:bg-white/5 transition"
+                      className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition"
                       onClick={() => setMenuOpen(false)}
                     >
                       个人中心
@@ -63,7 +58,7 @@ export default function HomePage() {
                         setMenuOpen(false);
                         logout();
                       }}
-                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition border-t border-line"
+                      className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-50 transition border-t border-slate-100"
                     >
                       退出登录
                     </button>
@@ -74,7 +69,7 @@ export default function HomePage() {
           ) : (
             <Link
               href="/login"
-              className="text-sm px-4 py-1.5 rounded-full bg-brand hover:bg-brand-dark text-white transition"
+              className="text-sm px-4 py-1.5 rounded-full bg-brand hover:bg-brand-dark text-white transition shadow-sm"
             >
               登录
             </Link>
@@ -83,19 +78,18 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* 联赛分类 */}
         <section className="mb-8">
-          <h2 className="text-sm text-muted mb-3">联赛分类</h2>
+          <h2 className="text-sm text-slate-500 mb-3 font-medium">联赛分类</h2>
           <div className="space-y-4">
             {leagueGroups.map(({ group, items }) => (
               <div key={group}>
-                <div className="text-xs text-muted mb-2">{group}</div>
+                <div className="text-xs text-slate-400 mb-2">{group}</div>
                 <div className="flex flex-wrap gap-2">
                   {items.map((l) => (
                     <Link
                       key={l.slug}
                       href={`/category/${l.slug}`}
-                      className="px-3 py-1.5 rounded-full bg-card border border-line hover:border-brand transition text-sm"
+                      className="px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 hover:border-brand hover:shadow-sm transition text-sm text-slate-700"
                     >
                       <span className="mr-1">{l.icon}</span>
                       {l.name}
@@ -107,17 +101,16 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 比赛列表 */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm text-muted">今日比赛</h2>
-            <span className="text-xs text-muted">北京时间</span>
+            <h2 className="text-sm text-slate-500 font-medium">今日比赛</h2>
+            <span className="text-xs text-slate-400">北京时间</span>
           </div>
 
-          <div className="rounded-2xl bg-card border border-line p-10 text-center">
+          <div className="rounded-2xl bg-white/80 border border-slate-200 p-10 text-center shadow-sm">
             <div className="text-3xl mb-3">⚽</div>
-            <div className="text-sm text-muted">暂无比赛数据</div>
-            <div className="text-xs text-muted mt-2">
+            <div className="text-sm text-slate-500">暂无比赛数据</div>
+            <div className="text-xs text-slate-400 mt-2">
               接入赛事数据后，这里会显示今日赛程
             </div>
           </div>
