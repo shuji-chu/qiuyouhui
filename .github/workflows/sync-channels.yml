@@ -1,0 +1,21 @@
+name: Sync Channels
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天 UTC 2 点（北京 10 点）
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate --accept-data-loss
+      - run: node scripts/sync-channels.js
+        env:
+          DATABASE_URL: file:./prisma/dev.db
