@@ -4,17 +4,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { BottomNav } from '@/components/layout/BottomNav';
 
-interface Channel {
+interface ReplayVideo {
   id: string;
-  name: string;
+  title: string;
   league: string;
   leagueIcon: string;
   home: string | null;
   away: string | null;
-  homeScore: number | null;
-  awayScore: number | null;
-  status: string;
-  viewers: number;
+  score: string | null;
+  videoId: string;
+  publishedAt: string;
 }
 
 const LEAGUES = [
@@ -23,23 +22,24 @@ const LEAGUES = [
   { key: '西甲', label: '西甲' },
   { key: '意甲', label: '意甲' },
   { key: '德甲', label: '德甲' },
+  { key: '法甲', label: '法甲' },
   { key: '欧冠', label: '欧冠' },
 ];
 
 export default function ReplayPage() {
   const [league, setLeague] = useState('all');
-  const [items, setItems] = useState<Channel[]>([]);
+  const [items, setItems] = useState<ReplayVideo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const p = new URLSearchParams({ status: 'replay' });
+    const p = new URLSearchParams();
     if (league !== 'all') p.set('league', league);
-    fetch(`/api/channels?${p}`)
+    fetch(`/api/replays?${p}`)
       .then((r) => r.json())
       .then((d) => {
-        if (!cancelled && d.ok) setItems(d.channels);
+        if (!cancelled && d.ok) setItems(d.items);
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -73,9 +73,12 @@ export default function ReplayPage() {
 
       <div className="max-w-3xl mx-auto px-4 pt-3">
         {loading && (
-          <div className="space-y-2.5">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 rounded-xl bg-white border border-slate-100 animate-pulse" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="aspect-video rounded-lg bg-white border border-slate-100 animate-pulse" />
+                <div className="h-3 bg-white rounded animate-pulse w-3/4" />
+              </div>
             ))}
           </div>
         )}
@@ -88,35 +91,49 @@ export default function ReplayPage() {
         )}
 
         {!loading && items.length > 0 && (
-          <div className="space-y-2.5">
-            {items.map((ch) => (
+          <div className="grid grid-cols-2 gap-3">
+            {items.map((item) => (
               <Link
-                key={ch.id}
-                href={`/live/${ch.id}`}
-                className="flex gap-3 bg-white rounded-xl border border-slate-100 p-3 active:bg-slate-50 transition"
+                key={item.id}
+                href={`/replay/${item.id}`}
+                className="group block"
               >
-                {/* 缩略图占位 */}
-                <div className="w-32 h-20 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 shrink-0 flex items-center justify-center relative">
-                  <span className="text-2xl opacity-60">{ch.leagueIcon}</span>
-                  <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded">
+                {/* 缩略图 */}
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-900">
+                  <img
+                    src={`https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    loading="lazy"
+                  />
+                  {/* 播放按钮 */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  {/* 联赛标签 */}
+                  <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <span>{item.leagueIcon}</span>
+                    <span>{item.league}</span>
+                  </div>
+                  {/* 时长占位 */}
+                  <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded">
                     回放
                   </div>
                 </div>
 
-                <div className="flex-1 min-w-0 py-0.5">
-                  <p className="text-[13px] font-medium text-slate-800 truncate">
-                    {ch.home} vs {ch.away}
+                {/* 标题 */}
+                <p className="text-[12px] text-slate-800 leading-snug mt-1.5 line-clamp-2 font-medium">
+                  {item.title}
+                </p>
+                {item.score && (
+                  <p className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                    {item.score}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    {ch.leagueIcon} {ch.league}
-                  </p>
-                  <p className="text-[16px] font-bold text-slate-900 mt-1 tabular-nums">
-                    {ch.homeScore} : {ch.awayScore}
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    {formatViewers(ch.viewers)} 人观看过
-                  </p>
-                </div>
+                )}
               </Link>
             ))}
           </div>
@@ -126,10 +143,4 @@ export default function ReplayPage() {
       <BottomNav />
     </main>
   );
-}
-
-function formatViewers(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
 }
